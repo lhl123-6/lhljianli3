@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="罗浩樑 · AI 编程实战展厅 — 飞机大战 × 坦克大战">
+<title>AI 编程实战 · 罗浩樑</title>
+<style>
+:root{
+  --cyan:#22d3ee; --violet:#a78bfa; --pink:#f472b6; --amber:#fbbf24;
+  --bg:#05060f; --panel:rgba(255,255,255,.05); --line:rgba(255,255,255,.14);
+  --text:#eef2ff; --text-2:rgba(238,242,255,.66);
+  --font:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+  --ease:cubic-bezier(.22,.8,.28,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100svh;
+  display:flex;flex-direction:column;align-items:center;overflow-x:hidden;position:relative;
+  -webkit-font-smoothing:antialiased}
+::selection{background:var(--violet);color:#0a0f1e}
+a{text-decoration:none;color:inherit}
+
+/* 代码雨画布 */
+#rain{position:fixed;inset:0;z-index:0}
+/* 氛围光斑 */
+.aurora{position:fixed;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+.aurora i{position:absolute;border-radius:50%;filter:blur(100px);opacity:.5;will-change:transform}
+.aurora .a1{width:44vw;height:44vw;left:-10vw;top:-12vw;background:radial-gradient(circle,rgba(34,211,238,.35),transparent 65%);animation:drift1 24s ease-in-out infinite alternate}
+.aurora .a2{width:36vw;height:36vw;right:-8vw;top:30vh;background:radial-gradient(circle,rgba(244,114,182,.30),transparent 65%);animation:drift2 30s ease-in-out infinite alternate}
+.aurora .a3{width:40vw;height:40vw;left:24vw;bottom:-16vw;background:radial-gradient(circle,rgba(167,139,250,.32),transparent 65%);animation:drift1 36s ease-in-out infinite alternate-reverse}
+@keyframes drift1{from{transform:translate(0,0) scale(1)}to{transform:translate(5vw,4vh) scale(1.15)}}
+@keyframes drift2{from{transform:translate(0,0) scale(1.1)}to{transform:translate(-5vw,-4vh) scale(.95)}}
+
+main{position:relative;z-index:2;width:min(980px,92vw);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;min-height:100svh;padding:80px 0 60px;text-align:center}
+
+/* 返回 */
+.back{position:fixed;top:22px;left:24px;z-index:10;display:inline-flex;align-items:center;gap:8px;
+  padding:10px 20px;border-radius:999px;border:1px solid var(--line);background:rgba(10,15,30,.6);
+  backdrop-filter:blur(10px);font-size:14px;color:var(--text-2);transition:.25s var(--ease)}
+.back:hover{color:var(--cyan);border-color:var(--cyan);transform:translateX(-4px)}
+
+/* 标题逐字浮现 */
+.kicker{font-size:clamp(12px,1.6vw,14px);letter-spacing:.5em;color:var(--cyan);font-weight:700;
+  opacity:0;animation:fadeUp .9s var(--ease) .3s forwards}
+.title{margin:18px 0 6px;font-size:clamp(46px,10vw,104px);font-weight:900;letter-spacing:.06em;line-height:1.1}
+.title .ch{display:inline-block;opacity:0;filter:blur(18px);transform:translateY(42px) scale(.86);
+  background:linear-gradient(100deg,var(--cyan),var(--violet) 45%,var(--pink));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:chIn 1s var(--ease) forwards}
+@keyframes chIn{70%{filter:blur(0)}100%{opacity:1;filter:blur(0);transform:none}}
+.title .ch:nth-child(1){animation-delay:.5s}.title .ch:nth-child(2){animation-delay:.66s}
+.title .ch:nth-child(3){animation-delay:.82s}.title .ch:nth-child(4){animation-delay:.98s}
+.title .ch:nth-child(5){animation-delay:1.14s}.title .ch:nth-child(6){animation-delay:1.3s}
+.title-glow{width:min(420px,60vw);height:2px;margin:14px auto 0;border-radius:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),var(--violet),var(--pink),transparent);
+  opacity:0;animation:fadeUp 1s var(--ease) 1.6s forwards;box-shadow:0 0 18px rgba(167,139,250,.8)}
+.subtitle{margin-top:20px;font-size:clamp(14px,2vw,17px);color:var(--text-2);letter-spacing:.12em;
+  opacity:0;animation:fadeUp 1s var(--ease) 1.8s forwards}
+.subtitle b{color:var(--amber)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+
+/* 游戏卡片 */
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:22px;width:100%;margin-top:56px;
+  opacity:0;animation:fadeUp 1s var(--ease) 2.2s forwards}
+@media(max-width:720px){.cards{grid-template-columns:1fr}}
+.gcard{position:relative;border-radius:22px;padding:34px 30px;text-align:left;overflow:hidden;
+  background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(14px);
+  transition:transform .35s var(--ease),box-shadow .35s var(--ease),border-color .35s}
+.gcard::before{content:"";position:absolute;inset:0;opacity:0;transition:opacity .35s;pointer-events:none;
+  background:radial-gradient(300px circle at var(--mx,50%) var(--my,20%),rgba(34,211,238,.16),transparent 60%)}
+.gcard:hover{transform:translateY(-8px);border-color:rgba(34,211,238,.45);
+  box-shadow:0 28px 60px -18px rgba(34,211,238,.35)}
+.gcard:hover::before{opacity:1}
+.gcard .pix{display:block;width:60px;height:auto;margin-bottom:14px;transition:transform .35s var(--ease);filter:drop-shadow(0 6px 14px rgba(34,211,238,.35))}
+.gcard:hover .pix{transform:scale(1.18) rotate(-6deg)}
+.gcard h3{font-size:21px;font-weight:800}
+.gcard .tag{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;margin-bottom:10px;
+  color:var(--cyan);background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.3);
+  padding:3px 12px;border-radius:999px}
+.gcard p{font-size:14px;color:var(--text-2);margin-top:10px;line-height:1.8}
+.gacts{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:11px 22px;border-radius:12px;font-size:14px;font-weight:700;
+  transition:transform .25s var(--ease),box-shadow .25s var(--ease)}
+.btn-p{color:#06121a;background:linear-gradient(135deg,var(--cyan),var(--violet))}
+.btn-p:hover{transform:translateY(-3px);box-shadow:0 14px 30px -10px rgba(34,211,238,.55)}
+.btn-g{border:1px solid var(--line);color:var(--text-2)}
+.btn-g:hover{transform:translateY(-3px);color:var(--pink);border-color:var(--pink)}
+
+footer{position:relative;z-index:2;padding:26px 0 34px;font-size:12.5px;color:var(--text-2);letter-spacing:.14em}
+footer b{color:var(--violet)}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
+  .title .ch,.kicker,.subtitle,.title-glow,.cards{opacity:1;filter:none;transform:none}
+  #rain{display:none}
+}
+</style>
+</head>
+<body>
+
+<canvas id="rain" aria-hidden="true"></canvas><!-- GridScan 透视网格扫描 -->
+<div class="aurora" aria-hidden="true"><i class="a1"></i><i class="a2"></i><i class="a3"></i></div>
+
+<a class="back" href="index.html">← 返回简历</a>
+
+<main>
+  <div class="kicker">AI CODING LAB · LHL</div>
+  <h1 class="title"><span class="ch">A</span><span class="ch">I</span><span class="ch">编</span><span class="ch">程</span><span class="ch">实</span><span class="ch">战</span></h1>
+  <div class="title-glow"></div>
+  <p class="subtitle">从想法到上线 · 用 AI 把<b>代码</b>变成能玩的东西</p>
+
+  <div class="cards">
+    <a class="gcard" href="https://lhl123-6.github.io/lhlcangku/" target="_blank" rel="noopener">
+      <span class="tag">纵版射击 · STG</span>
+      <svg class="pix" viewBox="0 0 16 12" aria-hidden="true" style="image-rendering:pixelated"><rect x="7" y="0" width="1.02" height="1.02" fill="#22d3ee"/><rect x="8" y="0" width="1.02" height="1.02" fill="#22d3ee"/><rect x="7" y="1" width="1.02" height="1.02" fill="#22d3ee"/><rect x="8" y="1" width="1.02" height="1.02" fill="#22d3ee"/><rect x="6" y="2" width="1.02" height="1.02" fill="#22d3ee"/><rect x="7" y="2" width="1.02" height="1.02" fill="#22d3ee"/><rect x="8" y="2" width="1.02" height="1.02" fill="#22d3ee"/><rect x="9" y="2" width="1.02" height="1.02" fill="#22d3ee"/><rect x="6" y="3" width="1.02" height="1.02" fill="#22d3ee"/><rect x="7" y="3" width="1.02" height="1.02" fill="#fbbf24"/><rect x="8" y="3" width="1.02" height="1.02" fill="#fbbf24"/><rect x="9" y="3" width="1.02" height="1.02" fill="#22d3ee"/><rect x="2" y="4" width="1.02" height="1.02" fill="#22d3ee"/><rect x="6" y="4" width="1.02" height="1.02" fill="#22d3ee"/><rect x="7" y="4" width="1.02" height="1.02" fill="#fbbf24"/><rect x="8" y="4" width="1.02" height="1.02" fill="#fbbf24"/><rect x="9" y="4" width="1.02" height="1.02" fill="#22d3ee"/><rect x="13" y="4" width="1.02" height="1.02" fill="#22d3ee"/><rect x="2" y="5" width="1.02" height="1.02" fill="#22d3ee"/><rect x="3" y="5" width="1.02" height="1.02" fill="#22d3ee"/><rect x="6" y="5" width="1.02" height="1.02" fill="#22d3ee"/><rect x="7" y="5" width="1.02" height="1.02" fill="#22d3ee"/><rect x="8" y="5" width="1.02" height="1.02" fill="#22d3ee"/><rect x="9" y="5" width="1.02" height="1.02" fill="#22d3ee"/><rect x="12" y="5" width="1.02" height="1.02" fill="#22d3ee"/><rect x="13" y="5" width="1.02" height="1.02" fill="#22d3ee"/><rect x="2" y="6" width="1.02" height="1.02" fill="#22d3ee"/><rect x="3" y="6" width="1.02" height="1.02" fill="#22d3ee"/><rect x="4" y="6" width="1.02" height="1.02" fill="#22d3ee"/><rect x="5" y="6" width="1.02" height="1.02" fill="#22d3ee"/><rect x="6" y="6" width="1.02" height="1.02" fill="#22d3ee"/><rect x="7" y="6" width="1.02" height="1.02" fill="#22d3ee"/><rect x="8" y="6" width="1.02" height="1.02" fill="#22d3ee"/><rect x="9" y="6" width="1.02" height="1.02" fill="#22d3ee"/><rect x="10" y="6" width="1.02" height="1.02" fill="#22d3ee"/><rect x="11" y="6" width="1.02" height="1.02" fill="#22d3ee"/><rect x="12" y="6" width="1.02" height="1.02" fill="#22d3ee"/><rect x="13" y="6" width="1.02" height="1.02" fill="#22d3ee"/><rect x="3" y="7" width="1.02" height="1.02" fill="#22d3ee"/><rect x="4" y="7" width="1.02" height="1.02" fill="#22d3ee"/><rect x="5" y="7" width="1.02" height="1.02" fill="#22d3ee"/><rect x="6" y="7" width="1.02" height="1.02" fill="#22d3ee"/><rect x="7" y="7" width="1.02" height="1.02" fill="#22d3ee"/><rect x="8" y="7" width="1.02" height="1.02" fill="#22d3ee"/><rect x="9" y="7" width="1.02" height="1.02" fill="#22d3ee"/><rect x="10" y="7" width="1.02" height="1.02" fill="#22d3ee"/><rect x="11" y="7" width="1.02" height="1.02" fill="#22d3ee"/><rect x="12" y="7" width="1.02" height="1.02" fill="#22d3ee"/><rect x="5" y="8" width="1.02" height="1.02" fill="#22d3ee"/><rect x="6" y="8" width="1.02" height="1.02" fill="#22d3ee"/><rect x="7" y="8" width="1.02" height="1.02" fill="#22d3ee"/><rect x="8" y="8" width="1.02" height="1.02" fill="#22d3ee"/><rect x="9" y="8" width="1.02" height="1.02" fill="#22d3ee"/><rect x="10" y="8" width="1.02" height="1.02" fill="#22d3ee"/><rect x="6" y="9" width="1.02" height="1.02" fill="#22d3ee"/><rect x="7" y="9" width="1.02" height="1.02" fill="#22d3ee"/><rect x="8" y="9" width="1.02" height="1.02" fill="#22d3ee"/><rect x="9" y="9" width="1.02" height="1.02" fill="#22d3ee"/><rect x="5" y="10" width="1.02" height="1.02" fill="#22d3ee"/><rect x="6" y="10" width="1.02" height="1.02" fill="#f472b6"/><rect x="7" y="10" width="1.02" height="1.02" fill="#f472b6"/><rect x="8" y="10" width="1.02" height="1.02" fill="#f472b6"/><rect x="9" y="10" width="1.02" height="1.02" fill="#f472b6"/><rect x="10" y="10" width="1.02" height="1.02" fill="#22d3ee"/><rect x="4" y="11" width="1.02" height="1.02" fill="#22d3ee"/><rect x="5" y="11" width="1.02" height="1.02" fill="#22d3ee"/><rect x="10" y="11" width="1.02" height="1.02" fill="#22d3ee"/><rect x="11" y="11" width="1.02" height="1.02" fill="#22d3ee"/></svg>
+      <h3>飞机大战 · 终端核心</h3>
+      <p>HTML5 Canvas + 原生 JavaScript 打造的纵版射击游戏：操控、弹幕、碰撞判定一气呵成，从零跑通「需求 → 编码 → 调试 → 部署」全流程。</p>
+      <div class="gacts">
+        <span class="btn btn-p">▶ 在线试玩</span>
+        <span class="btn btn-g" data-href="https://github.com/lhl123-6/lhlcangku">源码仓库</span>
+      </div>
+    </a>
+    <a class="gcard" href="https://lhl123-6.github.io/tank-battle/" target="_blank" rel="noopener">
+      <span class="tag">校园主题 · 对战</span>
+      <svg class="pix" viewBox="0 0 16 9" aria-hidden="true" style="image-rendering:pixelated"><rect x="7" y="0" width="1.02" height="1.02" fill="#14b8a6"/><rect x="8" y="0" width="1.02" height="1.02" fill="#14b8a6"/><rect x="7" y="1" width="1.02" height="1.02" fill="#14b8a6"/><rect x="8" y="1" width="1.02" height="1.02" fill="#14b8a6"/><rect x="7" y="2" width="1.02" height="1.02" fill="#14b8a6"/><rect x="8" y="2" width="1.02" height="1.02" fill="#14b8a6"/><rect x="1" y="3" width="1.02" height="1.02" fill="#1e293b"/><rect x="2" y="3" width="1.02" height="1.02" fill="#1e293b"/><rect x="6" y="3" width="1.02" height="1.02" fill="#14b8a6"/><rect x="7" y="3" width="1.02" height="1.02" fill="#14b8a6"/><rect x="8" y="3" width="1.02" height="1.02" fill="#14b8a6"/><rect x="9" y="3" width="1.02" height="1.02" fill="#14b8a6"/><rect x="13" y="3" width="1.02" height="1.02" fill="#1e293b"/><rect x="14" y="3" width="1.02" height="1.02" fill="#1e293b"/><rect x="1" y="4" width="1.02" height="1.02" fill="#1e293b"/><rect x="2" y="4" width="1.02" height="1.02" fill="#1e293b"/><rect x="5" y="4" width="1.02" height="1.02" fill="#14b8a6"/><rect x="6" y="4" width="1.02" height="1.02" fill="#14b8a6"/><rect x="7" y="4" width="1.02" height="1.02" fill="#14b8a6"/><rect x="8" y="4" width="1.02" height="1.02" fill="#14b8a6"/><rect x="9" y="4" width="1.02" height="1.02" fill="#14b8a6"/><rect x="10" y="4" width="1.02" height="1.02" fill="#14b8a6"/><rect x="13" y="4" width="1.02" height="1.02" fill="#1e293b"/><rect x="14" y="4" width="1.02" height="1.02" fill="#1e293b"/><rect x="1" y="5" width="1.02" height="1.02" fill="#1e293b"/><rect x="2" y="5" width="1.02" height="1.02" fill="#1e293b"/><rect x="4" y="5" width="1.02" height="1.02" fill="#14b8a6"/><rect x="5" y="5" width="1.02" height="1.02" fill="#14b8a6"/><rect x="6" y="5" width="1.02" height="1.02" fill="#14b8a6"/><rect x="7" y="5" width="1.02" height="1.02" fill="#fbbf24"/><rect x="8" y="5" width="1.02" height="1.02" fill="#fbbf24"/><rect x="9" y="5" width="1.02" height="1.02" fill="#14b8a6"/><rect x="10" y="5" width="1.02" height="1.02" fill="#14b8a6"/><rect x="11" y="5" width="1.02" height="1.02" fill="#14b8a6"/><rect x="13" y="5" width="1.02" height="1.02" fill="#1e293b"/><rect x="14" y="5" width="1.02" height="1.02" fill="#1e293b"/><rect x="1" y="6" width="1.02" height="1.02" fill="#1e293b"/><rect x="2" y="6" width="1.02" height="1.02" fill="#1e293b"/><rect x="4" y="6" width="1.02" height="1.02" fill="#14b8a6"/><rect x="5" y="6" width="1.02" height="1.02" fill="#14b8a6"/><rect x="6" y="6" width="1.02" height="1.02" fill="#14b8a6"/><rect x="7" y="6" width="1.02" height="1.02" fill="#14b8a6"/><rect x="8" y="6" width="1.02" height="1.02" fill="#14b8a6"/><rect x="9" y="6" width="1.02" height="1.02" fill="#14b8a6"/><rect x="10" y="6" width="1.02" height="1.02" fill="#14b8a6"/><rect x="11" y="6" width="1.02" height="1.02" fill="#14b8a6"/><rect x="13" y="6" width="1.02" height="1.02" fill="#1e293b"/><rect x="14" y="6" width="1.02" height="1.02" fill="#1e293b"/><rect x="1" y="7" width="1.02" height="1.02" fill="#1e293b"/><rect x="2" y="7" width="1.02" height="1.02" fill="#1e293b"/><rect x="4" y="7" width="1.02" height="1.02" fill="#14b8a6"/><rect x="5" y="7" width="1.02" height="1.02" fill="#14b8a6"/><rect x="6" y="7" width="1.02" height="1.02" fill="#14b8a6"/><rect x="7" y="7" width="1.02" height="1.02" fill="#14b8a6"/><rect x="8" y="7" width="1.02" height="1.02" fill="#14b8a6"/><rect x="9" y="7" width="1.02" height="1.02" fill="#14b8a6"/><rect x="10" y="7" width="1.02" height="1.02" fill="#14b8a6"/><rect x="11" y="7" width="1.02" height="1.02" fill="#14b8a6"/><rect x="13" y="7" width="1.02" height="1.02" fill="#1e293b"/><rect x="14" y="7" width="1.02" height="1.02" fill="#1e293b"/><rect x="1" y="8" width="1.02" height="1.02" fill="#1e293b"/><rect x="2" y="8" width="1.02" height="1.02" fill="#1e293b"/><rect x="6" y="8" width="1.02" height="1.02" fill="#14b8a6"/><rect x="7" y="8" width="1.02" height="1.02" fill="#14b8a6"/><rect x="8" y="8" width="1.02" height="1.02" fill="#14b8a6"/><rect x="9" y="8" width="1.02" height="1.02" fill="#14b8a6"/><rect x="13" y="8" width="1.02" height="1.02" fill="#1e293b"/><rect x="14" y="8" width="1.02" height="1.02" fill="#1e293b"/></svg>
+      <h3>坦克大战 · 校园保卫战</h3>
+      <p>竞赛训练营附加题作品：原创校园俯视底图，砖墙 / 钢墙 / 水域 / 草丛地形系统，敌方 AI 与胜负判定；地图中央砖墙摆成姓名缩写「LHL」。</p>
+      <div class="gacts">
+        <span class="btn btn-p">▶ 在线试玩</span>
+        <span class="btn btn-g" data-href="https://github.com/lhl123-6/tank-battle">源码仓库</span>
+      </div>
+    </a>
+  </div>
+</main>
+
+<footer>© 2026 <b>罗浩樑 LHL</b> · AI CODING LAB · 代码即作品</footer>
+
+<script>
+"use strict";
+/* ================= GridScan 透视网格扫描（原生 WebGL 移植） ================= */
+(() => {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cvs = document.getElementById("rain");
+  const gl = cvs.getContext("webgl2", { alpha: true, premultipliedAlpha: false, antialias: true });
+  if (!gl) { cvs.remove(); return; }
+
+  const VERT = `#version 300 es
+in vec2 aPos;
+out vec2 vUv;
+void main(){ vUv = aPos * 0.5 + 0.5; gl_Position = vec4(aPos, 0.0, 1.0); }`;
+
+  const FRAG = `#version 300 es
+precision highp float;
+uniform vec3 iResolution;
+uniform float iTime;
+uniform vec2 uSkew;
+uniform float uTilt;
+uniform float uYaw;
+uniform float uLineThickness;
+uniform vec3 uLinesColor;
+uniform vec3 uScanColor;
+uniform float uGridScale;
+uniform float uLineStyle;
+uniform float uLineJitter;
+uniform float uScanOpacity;
+uniform float uScanDirection;
+uniform float uNoise;
+uniform float uBloomOpacity;
+uniform float uScanGlow;
+uniform float uScanSoftness;
+uniform float uPhaseTaper;
+uniform float uScanDuration;
+uniform float uScanDelay;
+in vec2 vUv;
+uniform float uScanStarts[8];
+uniform float uScanCount;
+const int MAX_SCANS = 8;
+
+float smoother01(float a, float b, float x){
+  float t = clamp((x - a) / max(1e-5, (b - a)), 0.0, 1.0);
+  return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+}
+
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
+{
+    vec2 p = (2.0 * fragCoord - iResolution.xy) / iResolution.y;
+    vec3 ro = vec3(0.0);
+    vec3 rd = normalize(vec3(p, 2.0));
+    float cR = cos(uTilt), sR = sin(uTilt);
+    rd.xy = mat2(cR, -sR, sR, cR) * rd.xy;
+    float cY = cos(uYaw), sY = sin(uYaw);
+    rd.xz = mat2(cY, -sY, sY, cY) * rd.xz;
+    vec2 skew = clamp(uSkew, vec2(-0.7), vec2(0.7));
+    rd.xy += skew * rd.z;
+    vec3 color = vec3(0.0);
+  float minT = 1e20;
+  float gridScale = max(1e-5, uGridScale);
+    float fadeStrength = 2.0;
+    vec2 gridUV = vec2(0.0);
+  float hitIsY = 1.0;
+    for (int i = 0; i < 4; i++)
+    {
+        float isY = float(i < 2);
+        float pos = mix(-0.2, 0.2, float(i)) * isY + mix(-0.5, 0.5, float(i - 2)) * (1.0 - isY);
+        float num = pos - (isY * ro.y + (1.0 - isY) * ro.x);
+        float den = isY * rd.y + (1.0 - isY) * rd.x;
+        float t = num / den;
+        vec3 h = ro + rd * t;
+        float depthBoost = smoothstep(0.0, 3.0, h.z);
+        h.xy += skew * 0.15 * depthBoost;
+    bool use = t > 0.0 && t < minT;
+    gridUV = use ? mix(h.zy, h.xz, isY) / gridScale : gridUV;
+    minT = use ? t : minT;
+    hitIsY = use ? isY : hitIsY;
+    }
+    vec3 hit = ro + rd * minT;
+    float dist = length(hit - ro);
+  float jitterAmt = clamp(uLineJitter, 0.0, 1.0);
+  if (jitterAmt > 0.0) {
+    vec2 j = vec2(
+      sin(gridUV.y * 2.7 + iTime * 1.8),
+      cos(gridUV.x * 2.3 - iTime * 1.6)
+    ) * (0.15 * jitterAmt);
+    gridUV += j;
+  }
+  float fx = fract(gridUV.x);
+  float fy = fract(gridUV.y);
+  float ax = min(fx, 1.0 - fx);
+  float ay = min(fy, 1.0 - fy);
+  float wx = fwidth(gridUV.x);
+  float wy = fwidth(gridUV.y);
+  float halfPx = max(0.0, uLineThickness) * 0.5;
+  float tx = halfPx * wx;
+  float ty = halfPx * wy;
+  float aax = wx;
+  float aay = wy;
+  float lineX = 1.0 - smoothstep(tx, tx + aax, ax);
+  float lineY = 1.0 - smoothstep(ty, ty + aay, ay);
+  float primaryMask = max(lineX, lineY);
+    vec2 gridUV2 = (hitIsY > 0.5 ? hit.xz : hit.zy) / gridScale;
+  if (jitterAmt > 0.0) {
+    vec2 j2 = vec2(
+      cos(gridUV2.y * 2.1 - iTime * 1.4),
+      sin(gridUV2.x * 2.5 + iTime * 1.7)
+    ) * (0.15 * jitterAmt);
+    gridUV2 += j2;
+  }
+  float fx2 = fract(gridUV2.x);
+  float fy2 = fract(gridUV2.y);
+  float ax2 = min(fx2, 1.0 - fx2);
+  float ay2 = min(fy2, 1.0 - fy2);
+  float wx2 = fwidth(gridUV2.x);
+  float wy2 = fwidth(gridUV2.y);
+  float tx2 = halfPx * wx2;
+  float ty2 = halfPx * wy2;
+  float aax2 = wx2;
+  float aay2 = wy2;
+  float lineX2 = 1.0 - smoothstep(tx2, tx2 + aax2, ax2);
+  float lineY2 = 1.0 - smoothstep(ty2, ty2 + aay2, ay2);
+    float altMask = max(lineX2, lineY2);
+    float edgeDistX = min(abs(hit.x - (-0.5)), abs(hit.x - 0.5));
+    float edgeDistY = min(abs(hit.y - (-0.2)), abs(hit.y - 0.2));
+    float edgeDist = mix(edgeDistY, edgeDistX, hitIsY);
+    float edgeGate = 1.0 - smoothstep(gridScale * 0.5, gridScale * 2.0, edgeDist);
+    altMask *= edgeGate;
+  float lineMask = max(primaryMask, altMask);
+    float fade = exp(-dist * fadeStrength);
+    float dur = max(0.05, uScanDuration);
+    float del = max(0.0, uScanDelay);
+    float scanZMax = 2.0;
+    float widthScale = max(0.1, uScanGlow);
+    float sigma = max(0.001, 0.18 * widthScale * uScanSoftness);
+    float sigmaA = sigma * 2.0;
+    float combinedPulse = 0.0;
+    float combinedAura = 0.0;
+    float cycle = dur + del;
+    float tCycle = mod(iTime, cycle);
+    float scanPhase = clamp((tCycle - del) / dur, 0.0, 1.0);
+    float phase = scanPhase;
+    if (uScanDirection > 0.5 && uScanDirection < 1.5) {
+      phase = 1.0 - phase;
+    } else if (uScanDirection > 1.5) {
+      float t2 = mod(max(0.0, iTime - del), 2.0 * dur);
+      phase = (t2 < dur) ? (t2 / dur) : (1.0 - (t2 - dur) / dur);
+    }
+    float scanZ = phase * scanZMax;
+    float dz = abs(hit.z - scanZ);
+    float lineBand = exp(-0.5 * (dz * dz) / (sigma * sigma));
+    float taper = clamp(uPhaseTaper, 0.0, 0.49);
+    float headW = taper;
+    float tailW = taper;
+    float headFade = smoother01(0.0, headW, phase);
+    float tailFade = 1.0 - smoother01(1.0 - tailW, 1.0, phase);
+    float phaseWindow = headFade * tailFade;
+    combinedPulse += lineBand * phaseWindow * clamp(uScanOpacity, 0.0, 1.0);
+    float auraBand = exp(-0.5 * (dz * dz) / (sigmaA * sigmaA));
+    combinedAura += (auraBand * 0.25) * phaseWindow * clamp(uScanOpacity, 0.0, 1.0);
+    for (int i = 0; i < MAX_SCANS; i++) {
+      if (float(i) >= uScanCount) break;
+      float tActiveI = iTime - uScanStarts[i];
+      float phaseI = clamp(tActiveI / dur, 0.0, 1.0);
+      if (uScanDirection > 0.5 && uScanDirection < 1.5) {
+        phaseI = 1.0 - phaseI;
+      } else if (uScanDirection > 1.5) {
+        phaseI = (phaseI < 0.5) ? (phaseI * 2.0) : (1.0 - (phaseI - 0.5) * 2.0);
+      }
+      float scanZI = phaseI * scanZMax;
+      float dzI = abs(hit.z - scanZI);
+      float lineBandI = exp(-0.5 * (dzI * dzI) / (sigma * sigma));
+      float headFadeI = smoother01(0.0, headW, phaseI);
+      float tailFadeI = 1.0 - smoother01(1.0 - tailW, 1.0, phaseI);
+      float phaseWindowI = headFadeI * tailFadeI;
+      combinedPulse += lineBandI * phaseWindowI * clamp(uScanOpacity, 0.0, 1.0);
+      float auraBandI = exp(-0.5 * (dzI * dzI) / (sigmaA * sigmaA));
+      combinedAura += (auraBandI * 0.25) * phaseWindowI * clamp(uScanOpacity, 0.0, 1.0);
+    }
+  float lineVis = lineMask;
+  vec3 gridCol = uLinesColor * lineVis * fade;
+  vec3 scanCol = uScanColor * combinedPulse;
+  vec3 scanAura = uScanColor * combinedAura;
+    color = gridCol + scanCol + scanAura;
+  float nn = fract(sin(dot(gl_FragCoord.xy + vec2(iTime * 123.4), vec2(12.9898,78.233))) * 43758.5453123);
+  color += (nn - 0.5) * uNoise;
+  color = clamp(color, 0.0, 1.0);
+  float alpha = clamp(max(lineVis, combinedPulse), 0.0, 1.0);
+  float gx = 1.0 - smoothstep(tx * 2.0, tx * 2.0 + aax * 2.0, ax);
+  float gy = 1.0 - smoothstep(ty * 2.0, ty * 2.0 + aay * 2.0, ay);
+  float halo = max(gx, gy) * fade;
+  alpha = max(alpha, halo * clamp(uBloomOpacity, 0.0, 1.0));
+  fragColor = vec4(color, alpha);
+}
+layout(location = 0) out vec4 fragOut;
+void main(){
+  vec4 c;
+  mainImage(c, vUv * iResolution.xy);
+  fragOut = c;
+}`;
+
+  const sh = (type, src) => {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.warn(gl.getShaderInfoLog(s)); return null; }
+    return s;
+  };
+  const vs = sh(gl.VERTEX_SHADER, VERT), fs = sh(gl.FRAGMENT_SHADER, FRAG);
+  if (!vs || !fs) { cvs.remove(); return; }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { cvs.remove(); return; }
+  gl.useProgram(prog);
+
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+  const locPos = gl.getAttribLocation(prog, "aPos");
+  gl.enableVertexAttribArray(locPos);
+  gl.vertexAttribPointer(locPos, 2, gl.FLOAT, false, 0, 0);
+
+  const U = {};
+  ["iResolution","iTime","uSkew","uTilt","uYaw","uLineThickness","uLinesColor","uScanColor",
+   "uGridScale","uLineStyle","uLineJitter","uScanOpacity","uScanDirection","uNoise",
+   "uBloomOpacity","uScanGlow","uScanSoftness","uPhaseTaper","uScanDuration","uScanDelay",
+   "uScanCount"].forEach(k => U[k] = gl.getUniformLocation(prog, k));
+  U.uScanStarts = gl.getUniformLocation(prog, "uScanStarts[0]");
+
+  // 参数：贴合页面霓虹青紫配色
+  gl.uniform1f(U.uLineThickness, 1.0);
+  gl.uniform3f(U.uLinesColor, 0.20, 0.18, 0.30);        // 暗紫灰网格线
+  gl.uniform3f(U.uScanColor, 0.13, 0.83, 0.93);         // 霓虹青扫描线 #22d3ee
+  gl.uniform1f(U.uGridScale, 0.1);
+  gl.uniform1f(U.uLineStyle, 0);
+  gl.uniform1f(U.uLineJitter, 0.1);
+  gl.uniform1f(U.uScanOpacity, 0.6);
+  gl.uniform1f(U.uScanDirection, 2);                    // pingpong 往返扫描
+  gl.uniform1f(U.uNoise, 0.01);
+  gl.uniform1f(U.uBloomOpacity, 0.7);
+  gl.uniform1f(U.uScanGlow, 0.5);
+  gl.uniform1f(U.uScanSoftness, 2);
+  gl.uniform1f(U.uPhaseTaper, 0.9);
+  gl.uniform1f(U.uScanDuration, 2.0);
+  gl.uniform1f(U.uScanDelay, 2.0);
+  gl.uniform1f(U.uTilt, 0); gl.uniform1f(U.uYaw, 0);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.clearColor(0, 0, 0, 0);
+
+  // 尺寸
+  const dpr = () => Math.min(devicePixelRatio || 1, 2);
+  const resize = () => {
+    const d = dpr();
+    cvs.width = innerWidth * d | 0; cvs.height = innerHeight * d | 0;
+    gl.viewport(0, 0, cvs.width, cvs.height);
+    gl.uniform3f(U.iResolution, cvs.width, cvs.height, d);
+  };
+  addEventListener("resize", resize);
+  resize();
+
+  // 鼠标视差（平滑跟随）+ 点击触发扫描
+  const look = { x: 0, y: 0 }, target = { x: 0, y: 0 };
+  addEventListener("mousemove", e => {
+    target.x = (e.clientX / innerWidth) * 2 - 1;
+    target.y = -((e.clientY / innerHeight) * 2 - 1);
+  }, { passive: true });
+  let leaveTimer = null;
+  document.addEventListener("mouseleave", () => {
+    leaveTimer = setTimeout(() => { target.x = 0; target.y = 0; }, 250);
+  });
+  const scanStarts = new Float32Array(8);
+  let scanCount = 0;
+  addEventListener("pointerdown", () => {                 // 点击 → 额外扫描波
+    if (scanCount < 8) scanCount++;
+    else scanStarts.copyWithin(0, 1);
+    scanStarts[Math.min(scanCount, 8) - 1] = performance.now() / 1000;
+  }, { passive: true });
+
+  let last = performance.now();
+  (function tick(now) {
+    requestAnimationFrame(tick);
+    if (document.hidden) { last = now; return; }
+    const dt = Math.min((now - last) / 1000, 0.1); last = now;
+    const k = 1 - Math.exp(-dt / 0.25);                   // 指数平滑
+    look.x += (target.x - look.x) * k;
+    look.y += (target.y - look.y) * k;
+    gl.uniform2f(U.uSkew, look.x * 0.13, -look.y * 1.42 * 0.13);
+    gl.uniform1f(U.iTime, now / 1000);
+    gl.uniform1fv(U.uScanStarts, scanStarts);
+    gl.uniform1f(U.uScanCount, scanCount);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  })(last);
+})();
+
+/* ================= 卡片鼠标辉光 / 源码按钮 ================= */
+document.querySelectorAll(".gcard").forEach(card => {
+  card.addEventListener("mousemove", e => {
+    const r = card.getBoundingClientRect();
+    card.style.setProperty("--mx", (e.clientX - r.left) + "px");
+    card.style.setProperty("--my", (e.clientY - r.top) + "px");
+  });
+});
+/* 点击卡片跳试玩：新标签打开，被拦截时退回当前页跳转 */
+function goto(url) {
+  const w = open(url, "_blank", "noopener");
+  if (!w) location.href = url;
+}
+document.querySelectorAll(".gcard").forEach(card => {
+  card.addEventListener("click", e => {
+    if (e.target.closest("[data-href]")) return;   // 源码按钮自行处理
+    e.preventDefault();
+    goto(card.getAttribute("href"));
+  });
+});
+document.querySelectorAll("[data-href]").forEach(btn => {
+  btn.addEventListener("click", e => {
+    e.preventDefault(); e.stopPropagation();
+    goto(btn.dataset.href);
+  });
+});
+</script>
+</body>
+</html>
