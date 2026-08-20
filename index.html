@@ -107,6 +107,9 @@ section{padding:84px 0 20px}
 [data-theme="dark"] .pixel-blast{opacity:.2}
 #pixelBlast{opacity:.5}                            /* Hero 主视觉浓度更高 */
 [data-theme="dark"] #pixelBlast{opacity:.38}
+#profile{position:relative}                      /* 容纳 Tab 区的像素粒子画布 */
+#profile .pixel-blast{opacity:.2}                /* 卡片间隙点缀，比 Hero 更淡 */
+[data-theme="dark"] #profile .pixel-blast{opacity:.16}
 .hero .wrap,.hero .scroll-hint{position:relative;z-index:1}
 #contact,footer{position:relative;overflow:hidden}
 #contact .wrap,footer .wrap{position:relative;z-index:1}   /* 文字层浮在像素层之上，不影响阅读 */
@@ -213,14 +216,27 @@ section{padding:84px 0 20px}
   .hstat{width:min(300px,78vw)}
 }
 
-/* ============ Tabs ============ */
-.tabbar{display:flex;gap:8px;flex-wrap:wrap;padding:6px;border:1px solid var(--line);border-radius:16px;background:var(--bg-elev);width:max-content;max-width:100%;box-shadow:var(--shadow)}
-.tab{padding:10px 22px;border-radius:12px;font-size:14.5px;font-weight:600;color:var(--text-2);transition:.22s var(--ease);white-space:nowrap}
-.tab:hover{color:var(--text);background:var(--primary-soft)}
-.tab[aria-selected="true"]{color:#fff;background:linear-gradient(135deg,var(--primary),var(--primary-strong));box-shadow:0 8px 20px -8px var(--primary)}
-.panel{margin-top:28px;animation:panelIn .45s var(--ease)}
+/* ============ Tabs：滑动指示胶囊 + 编号 ============ */
+.tabbar{position:relative;display:flex;gap:2px;flex-wrap:wrap;padding:5px;border:1px solid var(--line);border-radius:999px;background:var(--bg-elev);width:max-content;max-width:100%;box-shadow:var(--shadow)}
+.tab-ink{position:absolute;left:0;top:0;z-index:0;border-radius:999px;pointer-events:none;
+  background:linear-gradient(135deg,var(--primary),var(--primary-strong));
+  box-shadow:0 8px 20px -8px var(--primary);
+  transition:transform .5s cubic-bezier(.22,1,.36,1),width .5s cubic-bezier(.22,1,.36,1),height .3s var(--ease)}
+.tab{position:relative;z-index:1;display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:999px;font-size:14.5px;font-weight:600;color:var(--text-2);transition:color .25s var(--ease),background .25s var(--ease);white-space:nowrap}
+.tab:not([aria-selected="true"]):hover{color:var(--text);background:var(--primary-soft)}
+.tab[aria-selected="true"]{color:#fff}
+.tab-idx{font-family:Consolas,"SFMono-Regular",monospace;font-size:10.5px;font-weight:700;letter-spacing:.1em;opacity:.45;transform:translateY(-.5px)}
+.tab[aria-selected="true"] .tab-idx{opacity:.95;color:#ffe1b0}
+.panel{margin-top:28px}
 .panel[hidden]{display:none}
-@keyframes panelIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+/* Tab 区域底层：与实战色块同款的 45° 斜线肌理（极淡） */
+.profile-zone{position:relative}
+.profile-zone::before{content:"";position:absolute;inset:-34px -42px;z-index:0;pointer-events:none;opacity:.6;
+  background:repeating-linear-gradient(45deg,transparent 0 14px,rgba(22,33,31,.028) 14px 15px)}
+/* 面板内容逐个入场：上浮 + 模糊→清晰，按 --i 依次延迟 */
+@keyframes cardIn{from{opacity:0;transform:translateY(22px);filter:blur(6px)}to{opacity:1;transform:none;filter:blur(0)}}
+.panel.replay .tl-item,.panel.replay .skill,.panel.replay .award,.panel.replay .cert{
+  animation:cardIn .6s var(--ease) both;animation-delay:calc(60ms + var(--i,0)*85ms)}
 
 /* ============ 时间线 ============ */
 .timeline{position:relative;padding-left:26px;display:flex;flex-direction:column;gap:26px}
@@ -238,6 +254,18 @@ section{padding:84px 0 20px}
 .tl-org{font-size:14px;color:var(--primary);font-weight:600}
 .tl-desc{margin-top:10px;font-size:14.5px;color:var(--text-2)}
 .tl-desc li{margin-left:1.1em;margin-top:4px}
+/* 时间线编排：竖线自上而下绘制，节点按序弹出（与卡片入场同一节拍） */
+.timeline::before{transform-origin:top}
+/* 时间线起点：琥珀色菱形端点 */
+.timeline::after{content:"";position:absolute;left:3.5px;top:-5px;width:9px;height:9px;border-radius:2.5px;background:var(--accent);transform:rotate(45deg)}
+.panel.replay .timeline::after{animation:diaPop .5s cubic-bezier(.34,1.56,.64,1) .08s both}
+@keyframes diaPop{0%{transform:rotate(45deg) scale(0)}60%{transform:rotate(45deg) scale(1.35)}100%{transform:rotate(45deg) scale(1)}}
+/* 错位排版：桌面端偶数卡片右移，打破单调 */
+@media(min-width:721px){.tl-item:nth-child(even){margin-left:30px}}
+.panel.replay .timeline::before{animation:lineDraw 1s var(--ease) .05s both}
+@keyframes lineDraw{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+.panel.replay .tl-item::before{animation:nodePop .55s cubic-bezier(.34,1.56,.64,1) both;animation-delay:calc(.3s + var(--i,0)*.3s)}
+@keyframes nodePop{0%{transform:scale(0)}55%{transform:scale(1.4);box-shadow:0 0 0 8px var(--primary-soft)}100%{transform:scale(1)}}
 
 /* ============ 技能卡 ============ */
 .skills{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
@@ -406,6 +434,48 @@ footer{margin-top:80px;border-top:1px solid var(--line);padding:30px 0;text-alig
   background:radial-gradient(320px circle at var(--mx,50%) var(--my,50%),var(--primary-soft) 0%,transparent 65%)}
 .hstat:hover::after,.tl-item:hover::after,.skill:hover::before,.award:hover::after,.cert:hover::after,.contact-card:hover::after{opacity:1}
 
+/* ============ 着陆开场（全屏视频 + Begin Journey 揭幕） ============ */
+#intro{position:fixed;inset:0;z-index:150;display:flex;flex-direction:column;overflow:hidden;
+  background:#0b1117 radial-gradient(120% 90% at 50% 10%,#152b2e 0%,#0b1117 60%);
+  transition:transform .95s cubic-bezier(.76,0,.24,1) .18s}
+#intro.leave{transform:translateY(-100%)}                 /* 上滑揭幕（延迟 .18s，先走完内容退场） */
+#intro video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  transition:transform 1.2s cubic-bezier(.22,1,.36,1) .18s}
+#intro.leave video{transform:scale(1.07)}                /* 揭幕时镜头轻微推进 */
+/* 内容先行退场：上浮 + 虚化，与帘幕滑动错拍 */
+#intro .in-nav,#intro .in-main,#intro .in-hint{transition:opacity .45s ease,transform .45s ease,filter .45s ease}
+#intro.leave .in-nav{opacity:0;transform:translateY(-18px)}
+#intro.leave .in-main{opacity:0;transform:translateY(-34px) scale(.985);filter:blur(8px)}
+#intro.leave .in-hint{opacity:0}
+/* 揭幕瞬间 Hero 从 1.045 倍缓慢落定，产生"落地"感 */
+#top{transition:transform 1.15s cubic-bezier(.22,1,.36,1);transform-origin:50% 30%}
+body.intro-lock #top{transform:scale(1.045)}
+#intro .in-veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,10,14,.55),rgba(6,10,14,.22) 42%,rgba(6,10,14,.62))}
+#intro .in-nav{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:26px clamp(24px,5vw,64px)}
+#intro .in-brand{font-family:"Instrument Serif",Georgia,serif;font-size:27px;color:#fff;letter-spacing:-.01em}
+#intro .in-brand sup{font-size:11px}
+#intro .in-main{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 24px 8vh}
+#intro .in-kicker{font-size:12px;letter-spacing:.42em;color:rgba(255,255,255,.6);font-weight:600}
+#intro .in-title{font-family:"Instrument Serif",Georgia,serif;font-weight:400;color:#fff;
+  font-size:clamp(44px,8.5vw,110px);line-height:1.02;letter-spacing:-.02em;margin:22px 0 0}
+#intro .in-title em{font-style:normal;color:rgba(255,255,255,.45)}
+#intro .in-sub{margin-top:24px;font-size:15px;color:rgba(255,255,255,.72);letter-spacing:.06em}
+.intro-begin{cursor:pointer;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.12);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  color:#fff;border-radius:999px;transition:transform .35s var(--ease),background .3s,border-color .3s}
+.intro-begin:hover{transform:scale(1.04);background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.45)}
+#intro .in-nav .intro-begin{padding:10px 24px;font-size:13.5px}
+#intro .in-cta{margin-top:44px;padding:18px 52px;font-size:16px;letter-spacing:.04em}
+#intro .in-hint{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);z-index:2;
+  font-size:11px;letter-spacing:.34em;color:rgba(255,255,255,.45)}
+#intro .in-kicker,#intro .in-title,#intro .in-sub,#intro .in-cta{animation:inRise .9s var(--ease) both}
+#intro .in-title{animation-delay:.12s}#intro .in-sub{animation-delay:.26s}#intro .in-cta{animation-delay:.4s}
+@keyframes inRise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+/* 开场期间：锁定滚动 + 暂停 Hero 文字动画，揭幕后才播放 */
+body.intro-lock{overflow:hidden}
+body.intro-lock .hero-name .ch{animation-play-state:paused}
+@media print{#intro{display:none!important}}
+
 /* ============ 降低动效偏好 ============ */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
@@ -428,6 +498,8 @@ footer{margin-top:80px;border-top:1px solid var(--line);padding:30px 0;text-alig
   .hero-grid{grid-template-columns:1fr;text-align:left}
   .hero-side{display:none}
   .panel[hidden]{display:block!important;animation:none}
+  .tl-item,.skill,.award,.cert,.timeline::before,.tl-item::before{animation:none!important}
+  .profile-zone::before{display:none!important}
   .reveal{opacity:1!important;transform:none!important}
   .tl-item,.skill,.award,.stat,.hstat,.contact-card{box-shadow:none;border:1px solid #ddd;break-inside:avoid}
   /* 横滑画廊打印时展平为网格 */
@@ -439,8 +511,26 @@ footer{margin-top:80px;border-top:1px solid var(--line);padding:30px 0;text-alig
   a{color:#111}
 }
 </style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap">
 </head>
 <body>
+
+<!-- 着陆开场：全屏视频 + Begin Journey，点击后上滑揭幕简历 -->
+<div id="intro">
+  <video src="intro-bg.mp4" autoplay loop muted playsinline preload="auto" aria-hidden="true"></video>
+  <div class="in-veil"></div>
+  <div class="in-nav">
+    <span class="in-brand">Luo Haoliang<sup>®</sup></span>
+    <button class="intro-begin" type="button">Begin Journey</button>
+  </div>
+  <div class="in-main">
+    <span class="in-kicker">LUO HAOLIANG · SHENZHEN UNIVERSITY</span>
+    <h1 class="in-title">My <em>Personal</em> Résumé.</h1>
+    <p class="in-sub">视觉设计 × AI 创作 × 编程实践 —— 不念过往，不畏将来</p>
+    <button class="intro-begin in-cta" type="button">Begin Journey →</button>
+  </div>
+  <span class="in-hint">PRESS BEGIN JOURNEY TO ENTER</span>
+</div>
 
 <div class="progress" id="progress"></div>
 <div class="aurora" aria-hidden="true"><i class="a1"></i><i class="a2"></i><i class="a3"></i></div>
@@ -523,7 +613,7 @@ footer{margin-top:80px;border-top:1px solid var(--line);padding:30px 0;text-alig
         <div class="sec-kicker">Profile</div>
         <h2 class="sec-title">教育 · 技能 · 项目 · <em>荣誉</em></h2>
       </div>
-      <div class="reveal" data-d="1">
+      <div class="reveal profile-zone" data-d="1">
         <div class="tabbar" role="tablist" aria-label="简历内容分类" id="tabbar"><!-- JS 渲染 Tab --></div>
         <div id="panels"><!-- JS 渲染面板 --></div>
       </div>
@@ -834,6 +924,29 @@ const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 })();
 
 /* ==================================================================
+   着陆开场：Begin Journey / Esc → 上滑揭幕，随后启动打字机
+================================================================== */
+(() => {
+  const intro = $("#intro");
+  if (!intro) return;
+  document.body.classList.add("intro-lock");
+  let done = false;
+  const leave = () => {
+    if (done) return;
+    done = true;
+    intro.classList.add("leave");
+    /* 帘幕升到一半时再解锁滚动、释放 Hero 动画，节奏更连贯 */
+    setTimeout(() => {
+      document.body.classList.remove("intro-lock");
+      dispatchEvent(new Event("intro:done"));
+    }, 450);
+    setTimeout(() => intro.remove(), 1500);
+  };
+  $$(".intro-begin").forEach(b => b.addEventListener("click", leave));
+  addEventListener("keydown", e => { if (e.key === "Escape") leave(); });
+})();
+
+/* ==================================================================
    打字机（Hero 副标语）
 ================================================================== */
 (() => {
@@ -841,7 +954,7 @@ const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (reduced) { target.textContent = resume.typeLines[0]; $("#caret").style.display = "none"; return; }
   const lines = resume.typeLines;
   let li = 0, ci = 0, del = false;
-  (function tick() {
+  function tick() {
     const line = lines[li];
     target.textContent = line.slice(0, ci);
     let wait = del ? 40 : 110;
@@ -849,7 +962,10 @@ const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     else if (del && ci === 0) { del = false; li = (li + 1) % lines.length; wait = 500; }
     else ci += del ? -1 : 1;
     setTimeout(tick, wait);
-  })();
+  }
+  /* 有开场层时等揭幕后再开始打字 */
+  if ($("#intro")) addEventListener("intro:done", () => setTimeout(tick, 500), { once: true });
+  else tick();
 })();
 
 /* ==================================================================
@@ -963,8 +1079,8 @@ const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   ];
   const bar = $("#tabbar"), panels = $("#panels");
 
-  const tlHTML = list => `<div class="timeline">` + list.map(it => `
-    <article class="tl-item">
+  const tlHTML = list => `<div class="timeline">` + list.map((it, i) => `
+    <article class="tl-item" style="--i:${i}">
       <span class="tl-time">${it.time}</span>
       <h3 class="tl-title">${it.title}</h3>
       <div class="tl-org">${it.org}</div>
@@ -973,15 +1089,15 @@ const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const renderers = {
     edu: () => resume.education.length ? tlHTML(resume.education) : "",
-    skill: () => resume.skills.length ? `<div class="skills">` + resume.skills.map(s => `
-      <article class="skill">
+    skill: () => resume.skills.length ? `<div class="skills">` + resume.skills.map((s, i) => `
+      <article class="skill" style="--i:${i}">
         <h3><span class="ico">${ICONS[s.icon]}</span>${s.title}</h3>
         <p>${s.desc}</p>
         <div class="chips">${s.chips.map(c => `<span class="chip">${c}</span>`).join("")}</div>
       </article>`).join("") + `</div>` : "",
     proj: () => resume.projects.length ? tlHTML(resume.projects) : "",
-    award: () => resume.awards.length ? `<div class="awards">` + resume.awards.map(a => `
-      <article class="award">
+    award: () => resume.awards.length ? `<div class="awards">` + resume.awards.map((a, i) => `
+      <article class="award" style="--i:${i}">
         <span class="medal">${ICONS.medal}</span>
         <div>
           <h3>${a.title}</h3>
@@ -990,7 +1106,7 @@ const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
         </div>
       </article>`).join("") + `</div>` : "",
     cert: () => resume.certs.length ? `<div class="certs">` + resume.certs.map((c, i) => `
-      <article class="cert">
+      <article class="cert" style="--i:${i}">
         <div class="thumb" data-i="${i}" tabindex="0" role="button" aria-label="查看证书大图：${c.title}">
           <img src="${CERT_IMAGES[i]}" alt="${c.title}" loading="lazy">
           <span class="zoom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></svg></span>
@@ -1004,6 +1120,7 @@ const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const html = renderers[d.id]();
     if (!html) return;                       // 缺失内容 → 自动隐藏该 Tab
     const t = el("button", "tab", d.label);
+    t.innerHTML = `<span class="tab-idx">${String(i + 1).padStart(2, "0")}</span>` + d.label;
     t.id = "tab-" + d.id;
     t.setAttribute("role", "tab");
     t.setAttribute("aria-controls", "panel-" + d.id);
@@ -1018,18 +1135,31 @@ const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     tabs.push(t); panes.push(p);
   });
 
+  // 滑动指示胶囊：跟随当前选中 Tab 的位置与尺寸
+  const ink = el("span", "tab-ink");
+  ink.setAttribute("aria-hidden", "true");
+  bar.prepend(ink);
+  const moveInk = t => {
+    if (!t) return;
+    ink.style.width = t.offsetWidth + "px";
+    ink.style.height = t.offsetHeight + "px";
+    ink.style.transform = `translate(${t.offsetLeft}px,${t.offsetTop}px)`;
+  };
+
   const activate = idx => {
     tabs.forEach((t, i) => {
       const on = i === idx;
       t.setAttribute("aria-selected", on);
       t.tabIndex = on ? 0 : -1;
       panes[i].hidden = !on;
-      if (on) { // 重新触发面板入场动画
-        panes[i].style.animation = "none";
-        void panes[i].offsetWidth;
-        panes[i].style.animation = "";
+      if (on) { // 重新触发面板内卡片的逐个入场动画
+        const p = panes[i];
+        p.classList.remove("replay");
+        void p.offsetWidth;
+        p.classList.add("replay");
       }
     });
+    moveInk(tabs[idx]);
   };
   tabs.forEach((t, i) => {
     t.addEventListener("click", () => activate(i));
@@ -1040,6 +1170,10 @@ const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
       activate(next); tabs[next].focus();
     });
   });
+  // 初始定位 + 首面板入场；字体加载与窗口变化后重新校准胶囊
+  requestAnimationFrame(() => { activate(0); });
+  addEventListener("resize", () => moveInk(bar.querySelector(".tab[aria-selected='true']")));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => moveInk(bar.querySelector(".tab[aria-selected='true']")));
 })();
 
 /* ==================================================================
@@ -1368,6 +1502,9 @@ spawnPixelBlast($(".hero"), { id: "pixelBlast", pixelSize: 4, density: 0.9, edge
 
 /* 联系区：琥珀色低密度点缀，文字层在上方，不影响阅读 */
 spawnPixelBlast($("#contact"), { pixelSize: 5, density: 0.72, edgeFade: 0.75, tone: "accent", speed: 0.35 });
+
+/* Tab 履历区：深青低密度粒子，只在本区空白与卡片间隙可见，点击有涟漪 */
+spawnPixelBlast($("#profile"), { pixelSize: 5, density: 0.6, edgeFade: 0.85, speed: 0.3 });
 
 /* 页脚：极淡的收束纹理 */
 spawnPixelBlast($("footer"), { pixelSize: 5, density: 0.65, edgeFade: 0.9, speed: 0.3 });
